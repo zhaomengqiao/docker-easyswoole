@@ -1,0 +1,25 @@
+version: '3'
+
+networks:
+  backend:
+    driver: bridge
+services:
+### app-nginx-fpm-admin ########################################
+    wjlmdrug-admin:
+      build: ./build
+#      image: dragonlhp/nginx-php-fpm-swoole:latest
+#      image: registry.ssjtime.cn:5000/wjlmdrug-admin
+      container_name: tjb2c3
+      volumes:
+        - ../tjb2c:/var/www/html
+
+      #command: ["/usr/bin/php","/var/www/html/think","swoole"]
+
+      # expose:
+      #   - "9510" 
+      ports:
+        - 80:80
+        - 9510:9510
+      #   - 9443:443
+      networks:
+        - backend

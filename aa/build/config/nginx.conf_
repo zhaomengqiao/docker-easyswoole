@@ -1,0 +1,134 @@
+worker_processes 1;
+pid /run/nginx.pid;
+user root;
+events {
+    worker_connections 1024;
+}
+
+http {
+    include mime.types;
+    default_type application/octet-stream;
+
+    log_format main_timed  '$remote_addr - $remote_user [$time_local] "$request" '
+                            '$status $body_bytes_sent "$http_referer" '
+                            '"$http_user_agent" "$http_x_forwarded_for" '
+                            '$request_time $upstream_response_time $pipe $upstream_cache_status';
+
+    access_log /dev/stdout main_timed;
+    error_log /dev/stderr notice;
+
+    keepalive_timeout 65;
+    server {
+        listen [::]:80 default_server;
+        listen 80 default_server;
+        server_name _;
+
+        sendfile off;
+
+        root /var/www/html/public;
+        index index.php index.html index.htm;
+
+        try_files $uri  @rewrite;
+        location ~ \.php$ {
+            try_files $uri =404;
+            fastcgi_pass 127.0.0.1:9000;
+            fastcgi_index index.php;
+            fastcgi_param SCRIPT_FILENAME  $document_root$fastcgi_script_name;
+            include fastcgi_params;
+        }
+
+
+        location ~ /.svn/ {
+            deny all;
+        }
+        # 重写规则
+        location @rewrite {
+            # 如果有admin.php 文件，重写
+            rewrite ^/admin.php(.*)$ /admin.php?s=$1 last;
+            # 如果有 index.php 文件 ，重写
+            rewrite ^/index.php(.*)$ /index.php?s=$1 last;
+            # 如果有 api.php 文件 ，重写
+            rewrite ^/api.php(.*)$ /api.php?s=$1 last;
+            # 重写到 index.php
+            rewrite . /index.php?s=$uri last;
+        }
+        # error_page  404              /404.html;
+        # redirect server error pages to the static page /50x.html
+
+        error_page 500 502 503 504  /50x.html;
+        location = /50x.html {
+            root html;
+        }
+        location ~ /\.(svn|git) {
+            deny all;
+        }
+
+     #   error_log /var/log/nginx/sminapp_https_error.log;
+     #   access_log /var/log/nginx/sminapp_https_access.log;
+    }
+
+    server {
+        listen 80;
+        server_name _;
+        rewrite ^(.*) https://$server_name$1 permanent;
+    }
+
+    server
+    {
+        listen 443 default ssl;
+        server_name _;
+        sendfile off;
+            #公钥
+        ssl_certificate /etc/nginx/nginx.crt;
+            #私钥
+        ssl_certificate_key /etc/nginx/nginx.key;
+            #协议
+        ssl_session_timeout 5m;
+
+        ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
+
+        ssl_session_tickets on;
+
+        # 按照这个协议配置 ssl_ciphers ECDHE-RSA-AES128-GCM-SHA256:HIGH:!aNULL:!MD5:!RC4:!DHE;
+        ssl_prefer_server_ciphers on;
+
+        root /var/www/html/public;
+        index index.php index.html index.htm;
+
+        try_files $uri  @rewrite;
+        location ~ \.php$ {
+            try_files $uri =404;
+            fastcgi_pass 127.0.0.1:9000;
+            fastcgi_index index.php;
+            fastcgi_param SCRIPT_FILENAME  $document_root$fastcgi_script_name;
+            include fastcgi_params;
+        }
+
+
+        location ~ /.svn/ {
+            deny all;
+        }
+        # 重写规则
+        location @rewrite {
+            # 如果有admin.php 文件，重写
+            rewrite ^/admin.php(.*)$ /admin.php?s=$1 last;
+            # 如果有 index.php 文件 ，重写
+            rewrite ^/index.php(.*)$ /index.php?s=$1 last;
+            # 如果有 api.php 文件 ，重写
+            rewrite ^/api.php(.*)$ /api.php?s=$1 last;
+            # 重写到 index.php
+            rewrite . /index.php?s=$uri last;
+        }
+        # error_page  404              /404.html;
+        # redirect server error pages to the static page /50x.html
+
+        error_page 500 502 503 504  /50x.html;
+        location = /50x.html {
+            root html;
+        }
+        location ~ /\.(svn|git) {
+            deny all;
+        }
+    }
+}
+
